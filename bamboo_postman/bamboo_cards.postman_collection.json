@@ -1,0 +1,257 @@
+{
+	"info": {
+		"_postman_id": "f250f5f0-2205-407a-92bf-d61c2f6fb415",
+		"name": "bamboo_cards",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "41808673"
+	},
+	"item": [
+		{
+			"name": "post_pet",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const responseCode = pm.response.code;",
+							"const res = pm.response.json();",
+							"",
+							"const expectedSuccess = [200, 201];",
+							"const expectedError = [400, 404, 500];",
+							"",
+							"// Validasi status code for success or not success",
+							"pm.test(\"Check status code is valid\", function () {",
+							"    pm.expect(responseCode).to.be.oneOf([...expectedSuccess, ...expectedError]);",
+							"});",
+							"",
+							"// condition for responses if success",
+							"if (expectedSuccess.includes(responseCode)) {",
+							"    // Validasi schema response",
+							"    pm.test(\"Response schema is valid\", function () {",
+							"        const schema = {",
+							"            type: \"object\",",
+							"            properties: {",
+							"                id: { type: \"integer\" },",
+							"                category: {",
+							"                    type: \"object\",",
+							"                    properties: {",
+							"                        id: { type: \"integer\" },",
+							"                        name: { type: \"string\" }",
+							"                    },",
+							"                    required: [\"id\", \"name\"]",
+							"                },",
+							"                name: { type: \"string\" },",
+							"                photoUrls: {",
+							"                    type: \"array\",",
+							"                    items: { type: \"string\" }",
+							"                },",
+							"                tags: {",
+							"                    type: \"array\",",
+							"                    items: {",
+							"                        type: \"object\",",
+							"                        properties: {",
+							"                            id: { type: \"integer\" },",
+							"                            name: { type: \"string\" }",
+							"                        },",
+							"                        required: [\"id\", \"name\"]",
+							"                    }",
+							"                },",
+							"                status: {",
+							"                    type: \"string\",",
+							"                    enum: [\"available\", \"pending\", \"sold\"]",
+							"                }",
+							"            },",
+							"            required: [\"id\", \"name\", \"photoUrls\", \"tags\", \"status\"]",
+							"        };",
+							"        pm.response.to.have.jsonSchema(schema);",
+							"    });",
+							"",
+							"    // validation id should match with generated petID",
+							"    pm.test(\"petId should match with generated petId\", function () {",
+							"        pm.expect(res.id).to.eql(parseInt(pm.environment.get(\"petId\")));",
+							"    });",
+							"",
+							"    // Validation name of pet should be match with data.json",
+							"    pm.test(\"Pet name should be a string and match input\", function () {",
+							"        pm.expect(res.name).to.be.a(\"string\");",
+							"        pm.expect(res.name).to.eql(pm.iterationData.get(\"petName\"));",
+							"    });",
+							"",
+							"    // Validation name of pet should be match with data.json",
+							"    pm.test(\"Pet status should be a string and match input\", function () {",
+							"        pm.expect(res.status).to.be.a(\"string\");",
+							"        pm.expect(res.status).to.eql(pm.iterationData.get(\"status\"));",
+							"    });",
+							"    // save petID to an environment to be used in another file",
+							"    pm.environment.set(\"createdPetId\", pm.environment.get(\"petId\"));",
+							"     pm.environment.set(\"postSuccess\", true);",
+							"",
+							"} else {",
+							"    // if the response is error",
+							"    pm.test(\"Should return error message if data is invalid\", function () {",
+							"        const errorMessage = res.message || res.error || res.status || res.code;",
+							"        pm.expect(errorMessage).to.not.be.undefined;",
+							"",
+							"        // Validation error message",
+							"        pm.expect(res.message).to.include(\"tagId\");",
+							"        pm.expect(res.message).to.include(\"petName\");",
+							"        pm.expect(res.message).to.include(\"status\");",
+							"    });",
+							"",
+							"    // Deleted createdPetId if failed",
+							"    pm.environment.unset(\"createdPetId\");",
+							"    pm.environment.unset(\"postSuccess\"); ",
+							"}",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const petId = Date.now() + Math.floor(Math.random() * 1000);",
+							"pm.environment.set(\"petId\", petId);",
+							"",
+							"const petData = pm.iterationData.toObject(); ",
+							"pm.environment.set(\"petName\", petData.petName);",
+							"pm.environment.set(\"status\", petData.status);",
+							"pm.environment.set(\"tagId\", petData.tagId);",
+							"pm.environment.set(\"tagName\", petData.tagName);",
+							"",
+							"console.log()",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "accept",
+						"value": "application/json",
+						"disabled": true
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id\": {{petId}},\n  \"name\": \"{{petName}}\",\n  \"photoUrls\": [\"http://image.url\"],\n  \"tags\": [\n    {\n      \"id\": {{tagId}},\n      \"name\": \"{{tagName}}\"\n    }\n  ],\n  \"status\": \"{{status}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/pet",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"pet"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get_pet_byID",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"if (!pm.environment.get(\"postSuccess\")) {",
+							"    postman.setNextRequest(null);",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const responseCodeGet = pm.response.code;",
+							"const res = pm.response.json();",
+							"",
+							"const expectedSuccess = [200, 201];",
+							"const expectedError = [400, 404, 500]",
+							"",
+							"pm.test(\"GET status code is valid\", function () {",
+							"    pm.expect([ ...expectedSuccess, ...expectedError ]).to.include(responseCodeGet);",
+							"});",
+							"",
+							"if (expectedSuccess.includes(responseCodeGet)) {",
+							"    pm.test(\"Response contains valid data\", function () {",
+							"        pm.expect(res).to.have.property(\"id\");",
+							"        pm.expect(res).to.have.property(\"name\");",
+							"        pm.expect(res).to.have.property(\"status\");",
+							"    });",
+							"    pm.test(\"petID from response matches requested petID\", function () {",
+							"        pm.expect(res.id).to.eql(pm.iterationData.get(\"petId\"));",
+							"    });",
+							"} else if (expectedError.includes(responseCodeGet)) {",
+							"    pm.test(\"Error response has message\", function () {",
+							"        pm.expect(res.message || res.status || res.code).to.not.be.undefined;",
+							"    });",
+							"",
+							"    // Specific checks for each error code",
+							"    if (responseCodeGet === 400) {",
+							"        pm.test(\"Response has error message for 400 (Bad Request)\", function () {",
+							"            pm.expect(res.message).to.not.be.undefined;",
+							"            pm.expect(res.message).to.eql(\"Bad Request\");",
+							"        });",
+							"    } else if (responseCodeGet === 404) {",
+							"        pm.test(\"Response has error message for 404 (Not Found)\", function () {",
+							"            pm.expect(res.message).to.not.be.undefined;",
+							"            pm.expect(res.message).to.eql(\"Pet not found\");",
+							"        });",
+							"    } else if (responseCodeGet === 500) {",
+							"        pm.test(\"Response has error message for 500 (Internal Server Error)\", function () {",
+							"            pm.expect(res.message).to.not.be.undefined;",
+							"            pm.expect(res.message).to.eql(\"Internal Server Error\");  ",
+							"        });",
+							"    }",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "file",
+					"file": {}
+				},
+				"url": {
+					"raw": "{{base_url}}/pet/{{createdPetId}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"pet",
+						"{{createdPetId}}"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
